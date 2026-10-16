@@ -1,0 +1,2214 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rosario Joven — Interactivo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        display: ['"Outfit"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --accent: #f59e0b;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 20%, rgba(245, 158, 11, 0.1) 0%, transparent 45%),
+                        radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.1) 0%, transparent 45%),
+                        #060913;
+            color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Animación realista del pulgar pasando la cuenta */
+        #thumbGroup {
+            transform-origin: 205px 255px;
+            transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .thumb-push-down {
+            transform: rotate(14deg) translate(-8px, 18px) !important;
+        }
+        .thumb-push-up {
+            transform: rotate(-10deg) translate(4px, -10px) !important;
+        }
+
+        /* Transición suave del texto de la oración */
+        .prayer-fade {
+            animation: prayerAppear 0.25s ease-out;
+        }
+        @keyframes prayerAppear {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scrollbar discreto por si el Ángelus o Credo requiere desplazamiento en pantallas pequeñas */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.25); border-radius: 9999px; }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col justify-between">
+
+    <!-- BARRA SUPERIOR MINIMALISTA -->
+    <header class="w-full px-4 sm:px-6 py-2.5 border-b border-white/10 bg-slate-950/60 backdrop-blur-md flex items-center justify-between shrink-0 z-30">
+        <button onclick="showHomeScreen()" class="flex items-center gap-2.5 group focus:outline-none">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 shadow-md shadow-amber-500/20">
+                <i class="ph-fill ph-cross text-lg"></i>
+            </div>
+            <span class="font-display font-bold text-base sm:text-lg tracking-tight text-white">Rosario Joven</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+            <!-- Botón de Música de Ambiente -->
+            <button id="ambientBtn" onclick="toggleAmbientSound()" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-2 text-xs font-semibold text-slate-200 transition-all">
+                <i id="ambientIcon" class="ph ph-waveform text-base text-amber-400"></i>
+                <span id="ambientLabel">Música Ambiente: Off</span>
+            </button>
+
+            <!-- Botón Cambiar Misterio (Solo visible rezando) -->
+            <button id="changeMysteryBtn" onclick="showHomeScreen()" class="hidden px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-semibold text-white items-center gap-1.5 transition-all">
+                <i class="ph ph-squares-four text-sm"></i>
+                <span>Misterios</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL (1 SOLA PANTALLA SIN SCROLL VERTICAL EN ESCRITORIO) -->
+    <main class="flex-1 w-full max-w-6xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-center overflow-hidden">
+
+        <!-- =======================================================
+             1. PANTALLA INICIAL: SELECCIÓN DE LOS 4 MISTERIOS
+             ======================================================= -->
+        <section id="homeScreen" class="w-full max-w-4xl mx-auto flex flex-col justify-center space-y-5">
+            <div class="text-center space-y-2">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-semibold">
+                    <i class="ph-fill ph-calendar-check"></i>
+                    <span id="todayRecommendationText">Cargando misterio de hoy...</span>
+                </div>
+                <h1 class="font-display font-extrabold text-2xl sm:text-4xl text-white">
+                    Selecciona el Misterio para Rezar
+                </h1>
+            </div>
+
+            <!-- 4 Opciones de Misterios -->
+            <div id="mysteryGrid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <!-- Generado dinámicamente por JS -->
+            </div>
+        </section>
+
+        <!-- =======================================================
+             2. PANTALLA DE ORACIÓN: TODO JUNTO LADO A LADO
+             ======================================================= -->
+        <section id="prayerScreen" class="hidden w-full h-full max-h-[620px] grid grid-cols-12 gap-3 sm:gap-6 items-stretch">
+
+            <!-- COLUMNA IZQUIERDA (5 cols): MANO REALISTA PASANDO EL ROSARIO + IMAGEN DEL MISTERIO -->
+            <div class="col-span-5 flex flex-col gap-3 h-full overflow-hidden">
+
+                <!-- 1. TARJETA DE LA IMAGEN DEL MISTERIO -->
+                <div class="glass rounded-2xl p-2.5 sm:p-3 flex flex-col shrink-0">
+                    <div class="flex items-center justify-between mb-1.5 px-1">
+                        <span id="sceneBadge" class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-300 truncate">
+                            Escena del Misterio
+                        </span>
+                        <span id="stepProgressBadge" class="text-[10px] sm:text-xs font-semibold text-slate-400 shrink-0">
+                            1 / 70
+                        </span>
+                    </div>
+                    <!-- Imagen estática y detallada de lo que sucede en el misterio -->
+                    <div id="mysteryArtBox" class="w-full h-32 sm:h-44 rounded-xl overflow-hidden bg-slate-950 border border-white/15 relative flex items-center justify-center shadow-inner">
+                        <!-- Imagen del misterio inyectada dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- 2. ROSARIO REALISTA EN MANO CON ANIMACIÓN AL PASAR CADA CUENTA -->
+                <div onclick="nextStep()" title="Toca para pasar la siguiente cuenta" class="glass rounded-2xl flex-1 relative overflow-hidden flex flex-col items-center justify-center cursor-pointer group border border-white/10 hover:border-amber-400/40 transition-colors">
+                    
+                    <div class="absolute top-2.5 left-3 right-3 flex items-center justify-between z-10 pointer-events-none">
+                        <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 bg-slate-950/70 px-2.5 py-1 rounded-full border border-white/10">
+                            <i class="ph-fill ph-hand-pointing text-amber-400 mr-1"></i>Toca para pasar cuenta
+                        </span>
+                        <span id="beadCounterPill" class="text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                            Cruz
+                        </span>
+                    </div>
+
+                    <!-- Lienzo SVG de la Mano sosteniendo y deslizando las cuentas 3D -->
+                    <svg id="handRosarySvg" viewBox="0 0 320 340" class="w-full h-full max-h-[340px] select-none">
+                        <defs>
+                            <!-- Gradientes realistas de piel para la mano -->
+                            <linearGradient id="skinMain" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#e8b496" />
+                                <stop offset="55%" stop-color="#d19473" />
+                                <stop offset="100%" stop-color="#a66c4e" />
+                            </linearGradient>
+                            <linearGradient id="skinShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#b87b5c" />
+                                <stop offset="100%" stop-color="#7c4b33" />
+                            </linearGradient>
+                            <linearGradient id="skinThumb" x1="15%" y1="0%" x2="85%" y2="100%">
+                                <stop offset="0%" stop-color="#f2c2a7" />
+                                <stop offset="65%" stop-color="#d99b79" />
+                                <stop offset="100%" stop-color="#a86d4f" />
+                            </linearGradient>
+
+                            <!-- Gradiente 3D para Cuentas Ave María (Madera de Olivo Pulida con Barniz) -->
+                            <radialGradient id="beadWood3D" cx="32%" cy="28%" r="68%">
+                                <stop offset="0%" stop-color="#fef3c7" />
+                                <stop offset="18%" stop-color="#f59e0b" />
+                                <stop offset="52%" stop-color="#b45309" />
+                                <stop offset="84%" stop-color="#451a03" />
+                                <stop offset="100%" stop-color="#1c0a00" />
+                            </radialGradient>
+
+                            <!-- Gradiente 3D para Cuenta Activa Iluminada (Ámbar / Oro Celeste) -->
+                            <radialGradient id="beadActive3D" cx="32%" cy="28%" r="70%">
+                                <stop offset="0%" stop-color="#ffffff" />
+                                <stop offset="25%" stop-color="#fef08a" />
+                                <stop offset="60%" stop-color="#f59e0b" />
+                                <stop offset="88%" stop-color="#b45309" />
+                                <stop offset="100%" stop-color="#78350f" />
+                            </radialGradient>
+
+                            <!-- Gradiente 3D para Cuentas Padre Nuestro (Perla Nacarada / Lapislázuli) -->
+                            <radialGradient id="beadFather3D" cx="30%" cy="26%" r="70%">
+                                <stop offset="0%" stop-color="#ffffff" />
+                                <stop offset="25%" stop-color="#e0f2fe" />
+                                <stop offset="58%" stop-color="#38bdf8" />
+                                <stop offset="86%" stop-color="#0369a1" />
+                                <stop offset="100%" stop-color="#082f49" />
+                            </radialGradient>
+
+                            <!-- Gradiente Metálico de Plata/Oro para Cadena, Casquillos y Crucifijo -->
+                            <linearGradient id="metalSilver" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#ffffff" />
+                                <stop offset="45%" stop-color="#cbd5e1" />
+                                <stop offset="80%" stop-color="#64748b" />
+                                <stop offset="100%" stop-color="#1e293b" />
+                            </linearGradient>
+                            <linearGradient id="goldCrossGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#fef9c3" />
+                                <stop offset="30%" stop-color="#facc15" />
+                                <stop offset="70%" stop-color="#d97706" />
+                                <stop offset="100%" stop-color="#451a03" />
+                            </linearGradient>
+
+                            <!-- Sombra proyectada realista para cada cuenta y cruz -->
+                            <filter id="beadDropShadow" x="-30%" y="-30%" width="160%" height="160%">
+                                <feDropShadow dx="2" dy="4" stdDeviation="2.5" flood-color="#020617" flood-opacity="0.65" />
+                            </filter>
+
+                            <!-- Filtro de resplandor para la cuenta que se está rezando -->
+                            <filter id="activeBeadGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="5.5" result="blur" />
+                                <feMerge>
+                                    <feMergeNode in="blur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        <!-- Halo de luz detrás de la cuenta activa entre los dedos -->
+                        <circle id="activeHaloGlow" cx="152" cy="168" r="38" fill="#f59e0b" fill-opacity="0.22" filter="url(#activeBeadGlow)" />
+
+                        <!-- CAPA 1: DEDOS DEL FONDO Y PALMA DE LA MANO QUE SOSTIENE EL ROSARIO -->
+                        <g id="backHandLayer">
+                            <!-- Muñeca y Palma en sombra -->
+                            <path d="M 235 340 C 215 295, 195 260, 175 215 C 165 190, 185 155, 225 162 C 265 170, 295 225, 315 340 Z" fill="url(#skinShadow)" />
+                            <!-- Dedo Índice (arriba sosteniendo la caída de la cadena) -->
+                            <path d="M 225 182 C 195 162, 160 154, 128 158 C 114 160, 110 176, 124 182 C 152 192, 185 198, 215 212 Z" fill="url(#skinMain)" stroke="#8c5438" stroke-width="1" />
+                            <!-- Dedo Medio -->
+                            <path d="M 230 210 C 195 195, 158 192, 128 198 C 115 202, 114 218, 128 222 C 158 230, 192 232, 222 242 Z" fill="url(#skinShadow)" stroke="#78452b" stroke-width="1" />
+                            <!-- Dedo Anular -->
+                            <path d="M 232 240 C 198 228, 166 226, 138 232 C 126 235, 126 250, 138 254 C 168 260, 198 262, 228 270 Z" fill="url(#skinShadow)" opacity="0.92" />
+                            <!-- Dedo Meñique -->
+                            <path d="M 235 268 C 206 258, 178 258, 154 264 C 144 267, 144 280, 155 283 C 180 288, 206 290, 234 296 Z" fill="url(#skinShadow)" opacity="0.85" />
+                        </g>
+
+                        <!-- CAPA 2: CADENA Y CUENTAS DEL ROSARIO EN 3D (Se deslizan con animación física) -->
+                        <g id="rosaryChainLayer"></g>
+
+                        <!-- CAPA 3: DEDO PULGAR EN PRIMER PLANO (Se mueve empujando cada cuenta al avanzar) -->
+                        <g id="thumbGroup">
+                            <!-- Cuerpo del Pulgar -->
+                            <path d="M 255 295 C 235 255, 215 220, 188 188 C 170 167, 144 160, 135 174 C 127 187, 142 206, 165 222 C 188 238, 202 268, 215 305 Z" 
+                                  fill="url(#skinThumb)" stroke="#9c6244" stroke-width="1.2" />
+                            <!-- Uña realista del pulgar -->
+                            <path d="M 142 173 C 136 179, 139 189, 148 194 C 154 189, 156 181, 151 174 C 148 171, 145 171, 142 173 Z" 
+                                  fill="#f7d6c4" opacity="0.85" stroke="#c98e70" stroke-width="0.8" />
+                            <!-- Pliegue articular del pulgar -->
+                            <path d="M 172 194 Q 166 202 170 210" fill="none" stroke="#a66c4e" stroke-width="1.3" stroke-linecap="round" opacity="0.7" />
+                        </g>
+                    </svg>
+                </div>
+
+            </div>
+
+            <!-- COLUMNA DERECHA (7 cols): MISTERIO ACTUAL + NOMBRE DE LA ORACIÓN + ORACIÓN PARA REZAR -->
+            <div class="col-span-7 flex flex-col h-full overflow-hidden">
+                <div class="glass rounded-2xl p-4 sm:p-6 flex flex-col justify-between h-full overflow-hidden">
+
+                    <!-- CABECERA: Misterio que se está rezando y Nombre de la Oración -->
+                    <div class="border-b border-white/10 pb-3 shrink-0">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <span id="currentMysteryHeader" class="text-xs sm:text-sm font-bold text-amber-400 tracking-wide truncate">
+                                Misterios Gozosos
+                            </span>
+                            <!-- Indicador visual de las 10 Ave Marías cuando se está en una decena -->
+                            <div id="miniDecadeDots" class="hidden items-center gap-1">
+                                <!-- 10 puntitos generados por JS -->
+                            </div>
+                        </div>
+
+                        <!-- Nombre de la Oración Actual -->
+                        <h2 id="currentPrayerName" class="font-display font-extrabold text-xl sm:text-3xl text-white tracking-tight leading-tight">
+                            Por la señal de la Santa Cruz
+                        </h2>
+                    </div>
+
+                    <!-- CUERPO CENTRAL: Texto de la Oración para rezar -->
+                    <div id="prayerTextBox" class="prayer-fade flex-1 my-3 overflow-y-auto pr-1 flex flex-col justify-center">
+                        <div id="currentPrayerBody" class="text-sm sm:text-lg lg:text-xl text-slate-100 leading-relaxed space-y-3 font-normal">
+                            <!-- Oración inyectada por JS -->
+                        </div>
+                    </div>
+
+                    <!-- CONTROLES INFERIORES: Anterior / Siguiente Cuenta -->
+                    <div class="pt-3 border-t border-white/10 flex items-center justify-between gap-2.5 shrink-0">
+                        <button id="prevBtn" onclick="prevStep()" class="px-3.5 sm:px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-slate-200 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-all disabled:opacity-30 disabled:pointer-events-none">
+                            <i class="ph-bold ph-arrow-left"></i>
+                            <span>Anterior</span>
+                        </button>
+
+                        <button id="nextBtn" onclick="nextStep()" class="flex-1 py-3 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-slate-950 font-display font-bold text-sm sm:text-base shadow-lg shadow-amber-500/20 hover:brightness-110 active:scale-95 flex items-center justify-center gap-2 transition-all">
+                            <span id="nextBtnLabel">Pasar Cuenta</span>
+                            <i class="ph-bold ph-arrow-right text-lg"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+
+        <!-- =======================================================
+             3. MODAL FINAL: ÁNGELUS COMPLETADO + 30 FRASES DE SANTOS CANÓNICOS
+             ======================================================= -->
+        <section id="completionModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xl flex items-center justify-center p-4">
+            <div class="glass max-w-lg w-full rounded-3xl p-6 sm:p-8 text-center border border-amber-400/30 shadow-2xl space-y-5">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 mx-auto flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/25">
+                    <i class="ph-fill ph-sparkle text-3xl"></i>
+                </div>
+
+                <div class="space-y-1">
+                    <span class="text-xs font-bold uppercase tracking-widest text-amber-400">¡Rosario y Ángelus Completados!</span>
+                    <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-white">Palabra de un Santo para ti</h2>
+                </div>
+
+                <!-- Caja con la Frase Aleatoria de uno de los 30 Santos Canónicos -->
+                <div class="p-5 rounded-2xl bg-slate-900/90 border border-white/10 text-left space-y-3 relative">
+                    <p id="saintQuoteText" class="text-base sm:text-lg text-slate-100 italic leading-relaxed">
+                        "La Eucaristía es mi autopista hacia el Cielo."
+                    </p>
+                    <div class="flex items-center justify-between pt-2 border-t border-white/10">
+                        <span id="saintAuthorName" class="font-display font-bold text-sm sm:text-base text-amber-400">
+                            — San Carlo Acutis
+                        </span>
+                        <button onclick="pickRandomSaintQuote()" class="text-xs font-semibold text-sky-300 hover:text-sky-200 flex items-center gap-1 bg-sky-500/15 px-2.5 py-1 rounded-lg border border-sky-400/25 transition">
+                            <i class="ph-bold ph-shuffle"></i>
+                            <span>Otra frase</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-1">
+                    <button onclick="restartRosary()" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm transition">
+                        Rezar de nuevo
+                    </button>
+                    <button onclick="showHomeScreen()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-display font-bold text-sm shadow-lg shadow-amber-500/20 transition">
+                        Volver al Inicio
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        /* =========================================================================
+           1. COLECCIÓN DE 30 FRASES DE SANTOS CANÓNICOS DE LA IGLESIA CATÓLICA
+           ========================================================================= */
+        const CANONICAL_SAINT_QUOTES = [
+            { quote: "Todos nacen como originales, pero muchos mueren como fotocopias.", saint: "San Carlo Acutis" },
+            { quote: "La Eucaristía es mi autopista hacia el Cielo.", saint: "San Carlo Acutis" },
+            { quote: "No tengan miedo. Abran de par en par las puertas a Cristo.", saint: "San Juan Pablo II" },
+            { quote: "El Santo Rosario es mi oración predilecta. ¡Plegaria maravillosa en su sencillez y en su profundidad!", saint: "San Juan Pablo II" },
+            { quote: "No todos podemos hacer grandes cosas, pero sí podemos hacer cosas pequeñas con un gran amor.", saint: "Santa Teresa de Calcuta" },
+            { quote: "La paz comienza con una sonrisa.", saint: "Santa Teresa de Calcuta" },
+            { quote: "Nos hiciste, Señor, para Ti, y nuestro corazón está inquieto hasta que descanse en Ti.", saint: "San Agustín de Hipona" },
+            { quote: "Ama y haz lo que quieras: si callas, callarás con amor; si corriges, corregirás con amor.", saint: "San Agustín de Hipona" },
+            { quote: "Para mí, la oración es un impulso del corazón, una sencilla mirada lanzada hacia el Cielo.", saint: "Santa Teresita del Niño Jesús" },
+            { quote: "En el corazón de la Iglesia, que es mi Madre, yo seré el Amor.", saint: "Santa Teresita del Niño Jesús" },
+            { quote: "Señor, haz de mí un instrumento de tu paz: donde haya odio, ponga yo amor.", saint: "San Francisco de Asís" },
+            { quote: "Comienza haciendo lo que es necesario, después lo que es posible, y de repente estarás haciendo lo imposible.", saint: "San Francisco de Asís" },
+            { quote: "Reza, espera y no te preocupes. La preocupación es inútil: Dios es misericordioso y escuchará tu oración.", saint: "San Padre Pío de Pietrelcina" },
+            { quote: "El Rosario es el arma de estos tiempos.", saint: "San Padre Pío de Pietrelcina" },
+            { quote: "Nada te turbe, nada te espante; todo se pasa, Dios no se muda. Solo Dios basta.", saint: "Santa Teresa de Jesús (de Ávila)" },
+            { quote: "En el atardecer de la vida, seremos juzgados en el amor.", saint: "San Juan de la Cruz" },
+            { quote: "Donde no hay amor, pon amor y sacarás amor.", saint: "San Juan de la Cruz" },
+            { quote: "Si son lo que deben ser, prenderán fuego al mundo entero.", saint: "Santa Catalina de Siena" },
+            { quote: "Camina siempre con alegría: un santo triste es un triste santo.", saint: "San Juan Bosco" },
+            { quote: "Basta que sean jóvenes para que los ame profundamente.", saint: "San Juan Bosco" },
+            { quote: "En todo amar y servir.", saint: "San Ignacio de Loyola" },
+            { quote: "Actúa como si todo dependiera de ti, sabiendo que en realidad todo depende de Dios.", saint: "San Ignacio de Loyola" },
+            { quote: "Que busques a Cristo, que encuentres a Cristo, que ames a Cristo.", saint: "San Josemaría Escrivá" },
+            { quote: "El Santo Rosario es arma poderosa: úsala con confianza y te maravillarás del resultado.", saint: "San Josemaría Escrivá" },
+            { quote: "Prefiero el Paraíso.", saint: "San Felipe Neri" },
+            { quote: "Solo el amor crea.", saint: "San Maximiliano María Kolbe" },
+            { quote: "Jesús, en Vos confío.", saint: "Santa Faustina Kowalska" },
+            { quote: "Las acciones hablan más fuerte que las palabras; que tus palabras enseñen y tus acciones hablen.", saint: "San Antonio de Padua" },
+            { quote: "Ora y trabaja (Ora et Labora), para que en todo sea Dios glorificado.", saint: "San Benito de Nursia" },
+            { quote: "Florece donde Dios te ha plantado con paciencia y dulzura.", saint: "San Francisco de Sales" }
+        ];
+
+        /* =========================================================================
+           2. TEXTOS DE LAS ORACIONES
+           ========================================================================= */
+        const PRAYERS = {
+            signOfCross: {
+                title: "Señal de la Cruz",
+                html: `
+                    <p class="text-amber-300 font-semibold">Por la señal de la Santa Cruz (+), de nuestros enemigos (+), líbranos Señor, Dios nuestro (+).</p>
+                    <p>En el nombre del Padre, y del Hijo, y del Espíritu Santo. <strong class="text-white">Amén.</strong></p>
+                `
+            },
+            creed: {
+                title: "El Credo",
+                html: `
+                    <p>Creo en Dios, Padre Todopoderoso, Creador del cielo y de la tierra. Creo en Jesucristo, su único Hijo, Nuestro Señor, que fue concebido por obra y gracia del Espíritu Santo, nació de Santa María Virgen, padeció bajo el poder de Poncio Pilato, fue crucificado, muerto y sepultado, descendió a los infiernos, al tercer día resucitó de entre los muertos, subió a los cielos y está sentado a la derecha de Dios, Padre todopoderoso. Desde allí ha de venir a juzgar a vivos y muertos.</p>
+                    <p class="text-amber-200">Creo en el Espíritu Santo, la santa Iglesia católica, la comunión de los santos, el perdón de los pecados, la resurrección de la carne y la vida eterna. <strong class="text-white">Amén.</strong></p>
+                `
+            },
+            pesame: {
+                title: "El Pésame (Acto de Contrición)",
+                html: `
+                    <p>Pésame, Dios mío, y me arrepiento de todo corazón de haberos ofendido. Pésame por el Infierno que merecí y por el Cielo que perdí; pero mucho más me pesa, porque pecando ofendí a un Dios tan bueno y tan grande como Vos.</p>
+                    <p class="text-amber-200">Antes querría haber muerto que haberos ofendido, y propongo firmemente no pecar más, y evitar todas las ocasiones próximas de pecado. <strong class="text-white">Amén.</strong></p>
+                `
+            },
+            ourFather: {
+                title: "Padre Nuestro",
+                html: `
+                    <p>Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo.</p>
+                    <p class="text-sky-200">Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. <strong class="text-white">Amén.</strong></p>
+                `
+            },
+            hailMary: {
+                title: "Ave María",
+                html: `
+                    <p>Dios te salve, María, llena eres de gracia, el Señor es contigo; bendita tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús.</p>
+                    <p class="text-sky-200">Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. <strong class="text-white">Amén.</strong></p>
+                `
+            },
+            glory: {
+                title: "Gloria",
+                html: `
+                    <p>Gloria al Padre, y al Hijo, y al Espíritu Santo.</p>
+                    <p class="text-sky-200">Como era en el principio, ahora y siempre, por los siglos de los siglos. <strong class="text-white">Amén.</strong></p>
+                `
+            },
+            fatima: {
+                title: "Oración de Fátima",
+                html: `
+                    <p class="text-amber-200 font-medium">¡Oh Jesús mío, perdona nuestros pecados, líbranos del fuego del infierno, lleva al cielo a todas las almas, especialmente a las más necesitadas de tu divina misericordia! <strong class="text-white">Amén.</strong></p>
+                `
+            },
+            angelus: {
+                title: "El Ángelus",
+                html: `
+                    <div class="space-y-2 text-sm sm:text-base">
+                        <p><strong class="text-amber-300">V.</strong> El Ángel del Señor anunció a María.<br>
+                        <strong class="text-sky-300">R.</strong> Y concibió por obra y gracia del Espíritu Santo. <em class="text-slate-400">(Ave María...)</em></p>
+                        <p><strong class="text-amber-300">V.</strong> He aquí la esclava del Señor.<br>
+                        <strong class="text-sky-300">R.</strong> Hágase en mí según tu palabra. <em class="text-slate-400">(Ave María...)</em></p>
+                        <p><strong class="text-amber-300">V.</strong> Y el Verbo se hizo carne.<br>
+                        <strong class="text-sky-300">R.</strong> Y habitó entre nosotros. <em class="text-slate-400">(Ave María...)</em></p>
+                        <p><strong class="text-amber-300">V.</strong> Ruega por nosotros, Santa Madre de Dios.<br>
+                        <strong class="text-sky-300">R.</strong> Para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo.</p>
+                        <p class="pt-1 text-amber-100"><strong>Oremos:</strong> Infunde, Señor, tu gracia en nuestras almas, para que los que hemos conocido, por el anuncio del Ángel, la Encarnación de tu Hijo Jesucristo, lleguemos por los méritos de su Pasión y su Cruz, a la gloria de la Resurrección. Por Jesucristo Nuestro Señor. <strong>Amén.</strong></p>
+                    </div>
+                `
+            }
+        };
+
+        /* =========================================================================
+           3. LOS 4 GRUPOS DE MISTERIOS
+           ========================================================================= */
+        const MYSTERIES_DATA = {
+            gozosos: {
+                id: 'gozosos',
+                name: 'Misterios Gozosos',
+                days: 'Lunes y Sábados',
+                dayNumbers: [1, 6],
+                color: '#f59e0b',
+                gradient: 'from-amber-400 to-orange-500',
+                icon: 'ph-sun-dim',
+                items: [
+                    { title: '1° Misterio Gozoso: La Encarnación del Hijo de Dios', art: 'annunciation' },
+                    { title: '2° Misterio Gozoso: La Visitación de María a su prima Isabel', art: 'visitation' },
+                    { title: '3° Misterio Gozoso: El Nacimiento de Jesús en Belén', art: 'nativity' },
+                    { title: '4° Misterio Gozoso: La Presentación de Jesús en el Templo', art: 'presentation' },
+                    { title: '5° Misterio Gozoso: El Niño Jesús perdido y hallado en el Templo', art: 'temple' }
+                ]
+            },
+            dolorosos: {
+                id: 'dolorosos',
+                name: 'Misterios Dolorosos',
+                days: 'Martes y Viernes',
+                dayNumbers: [2, 5],
+                color: '#f43f5e',
+                gradient: 'from-rose-500 to-red-600',
+                icon: 'ph-drop',
+                items: [
+                    { title: '1° Misterio Doloroso: La Oración de Jesús en el Huerto', art: 'garden' },
+                    { title: '2° Misterio Doloroso: La Flagelación del Señor', art: 'pillar' },
+                    { title: '3° Misterio Doloroso: La Coronación de Espinas', art: 'crown_thorns' },
+                    { title: '4° Misterio Doloroso: Jesús con la Cruz a cuestas', art: 'carrying_cross' },
+                    { title: '5° Misterio Doloroso: La Crucifixión y Muerte de Jesús', art: 'crucifixion' }
+                ]
+            },
+            gloriosos: {
+                id: 'gloriosos',
+                name: 'Misterios Gloriosos',
+                days: 'Miércoles y Domingos',
+                dayNumbers: [0, 3],
+                color: '#a855f7',
+                gradient: 'from-purple-500 to-indigo-600',
+                icon: 'ph-crown',
+                items: [
+                    { title: '1° Misterio Glorioso: La Resurrección del Señor', art: 'resurrection' },
+                    { title: '2° Misterio Glorioso: La Ascensión del Señor al Cielo', art: 'ascension' },
+                    { title: '3° Misterio Glorioso: La Venida del Espíritu Santo', art: 'pentecost' },
+                    { title: '4° Misterio Glorioso: La Asunción de María al Cielo', art: 'assumption' },
+                    { title: '5° Misterio Glorioso: La Coronación de María como Reina', art: 'coronation' }
+                ]
+            },
+            luminosos: {
+                id: 'luminosos',
+                name: 'Misterios Luminosos',
+                days: 'Jueves',
+                dayNumbers: [4],
+                color: '#0ea5e9',
+                gradient: 'from-sky-400 to-blue-600',
+                icon: 'ph-sparkle',
+                items: [
+                    { title: '1° Misterio Luminoso: El Bautismo de Jesús en el Jordán', art: 'baptism' },
+                    { title: '2° Misterio Luminoso: Las Bodas de Caná', art: 'cana' },
+                    { title: '3° Misterio Luminoso: El Anuncio del Reino de Dios', art: 'kingdom' },
+                    { title: '4° Misterio Luminoso: La Transfiguración del Señor', art: 'transfiguration' },
+                    { title: '5° Misterio Luminoso: La Institución de la Eucaristía', art: 'eucharist' }
+                ]
+            }
+        };
+
+        /* =========================================================================
+           4. GENERADOR DE IMÁGENES ESTÁTICAS PICTÓRICAS PARA CADA MISTERIO
+           Crea una imagen real (PNG en <img>) pintada con detalle artístico
+           para cada uno de los 20 misterios, la introducción y el Ángelus.
+           ========================================================================= */
+        const MYSTERY_IMAGE_CACHE = {};
+
+        const MYSTERY_CAPTIONS = {
+            intro: "Señal de la Cruz y Oraciones Iniciales",
+            annunciation: "El Arcángel Gabriel anuncia a María la Encarnación",
+            visitation: "María visita y abraza a su prima Santa Isabel",
+            nativity: "Nacimiento del Niño Jesús en el portal de Belén",
+            presentation: "María y José presentan a Jesús en el Templo",
+            temple: "El Niño Jesús hallado entre los doctores del Templo",
+            garden: "Jesús ora en el Huerto de los Olivos en Getsemaní",
+            pillar: "La Flagelación de Nuestro Señor atado a la columna",
+            crown_thorns: "Jesús es coronado de espinas",
+            carrying_cross: "Jesús carga con la Cruz camino al Calvario",
+            crucifixion: "Crucifixión y Muerte de Jesús en el Gólgota",
+            resurrection: "La gloriosa Resurrección de Jesucristo",
+            ascension: "La Ascensión del Señor a los Cielos",
+            pentecost: "La Venida del Espíritu Santo en Pentecostés",
+            assumption: "La Asunción de la Santísima Virgen María al Cielo",
+            coronation: "María es coronada como Reina del Cielo y de la Tierra",
+            baptism: "El Bautismo de Jesús en el río Jordán",
+            cana: "Primer milagro de Jesús en las Bodas de Caná",
+            kingdom: "Jesús anuncia el Reino de Dios en Galilea",
+            transfiguration: "La Transfiguración de Jesús en el Monte Tabor",
+            eucharist: "Jesús instituye la Sagrada Eucaristía en la Última Cena",
+            angelus: "El Ángelus • El Verbo se hizo carne y habitó entre nosotros"
+        };
+
+        // Función auxiliar para dibujar una figura humana sacra con túnica, manto, rostro y aureola
+        function paintSacredFigure(ctx, opts) {
+            const {
+                x, y, scale = 1,
+                robeColor = '#e2e8f0',
+                mantleColor = '#0284c7',
+                skinColor = '#f5cba7',
+                hairColor = '#4a2c11',
+                halo = true,
+                haloColor = '#fde047',
+                kneeling = false,
+                armsPose = 'prayer', // 'prayer' | 'open' | 'blessing' | 'reaching'
+                facing = 0, // -1 izq, 0 frente, 1 der
+                crown = false,
+                thorns = false,
+                wings = false,
+                beard = false
+            } = opts;
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+
+            // Alas de ángel si aplica
+            if (wings) {
+                const wingGrad = ctx.createLinearGradient(-55, -75, 10, 15);
+                wingGrad.addColorStop(0, '#ffffff');
+                wingGrad.addColorStop(0.6, '#fef08a');
+                wingGrad.addColorStop(1, '#d97706');
+                ctx.fillStyle = wingGrad;
+                ctx.beginPath();
+                ctx.moveTo(-8, -38);
+                ctx.bezierCurveTo(-55, -80, -70, -20, -25, 8);
+                ctx.bezierCurveTo(-40, -10, -30, -35, -8, -22);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(8, -38);
+                ctx.bezierCurveTo(45, -75, 58, -20, 20, 6);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Aureola de santidad
+            if (halo) {
+                const haloGrad = ctx.createRadialGradient(0, -56, 4, 0, -56, 26);
+                haloGrad.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
+                haloGrad.addColorStop(0.65, 'rgba(245, 158, 11, 0.45)');
+                haloGrad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+                ctx.fillStyle = haloGrad;
+                ctx.beginPath();
+                ctx.arc(0, -56, 26, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = haloColor;
+                ctx.lineWidth = 1.6;
+                ctx.beginPath();
+                ctx.arc(0, -56, 18, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Sombra en el suelo
+            ctx.fillStyle = 'rgba(0,0,0,0.35)';
+            ctx.beginPath();
+            ctx.ellipse(0, kneeling ? 26 : 42, 24, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Túnica principal
+            const bodyHeight = kneeling ? 26 : 42;
+            const robeGrad = ctx.createLinearGradient(-20, -38, 22, bodyHeight);
+            robeGrad.addColorStop(0, robeColor);
+            robeGrad.addColorStop(1, '#1e293b');
+            ctx.fillStyle = robeGrad;
+            ctx.beginPath();
+            ctx.moveTo(-14, -36);
+            ctx.quadraticCurveTo(-24, 0, kneeling ? -26 : -22, bodyHeight);
+            ctx.lineTo(kneeling ? 28 : 22, bodyHeight);
+            ctx.quadraticCurveTo(24, 0, 14, -36);
+            ctx.closePath();
+            ctx.fill();
+
+            // Manto exterior con pliegues
+            const mantleGrad = ctx.createLinearGradient(-22, -42, 22, bodyHeight);
+            mantleGrad.addColorStop(0, mantleColor);
+            mantleGrad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = mantleGrad;
+            ctx.beginPath();
+            ctx.moveTo(-16, -38);
+            ctx.quadraticCurveTo(-28, -5, -24, bodyHeight - 2);
+            ctx.lineTo(-6, bodyHeight - 2);
+            ctx.quadraticCurveTo(-8, -10, 0, -34);
+            ctx.quadraticCurveTo(10, -10, 8, bodyHeight - 2);
+            ctx.lineTo(24, bodyHeight - 2);
+            ctx.quadraticCurveTo(28, -5, 16, -38);
+            ctx.closePath();
+            ctx.fill();
+
+            // Cuello y Cabeza
+            ctx.fillStyle = skinColor;
+            ctx.fillRect(-4, -45, 8, 9);
+            ctx.beginPath();
+            ctx.arc(0, -55, 11.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cabello o Velo
+            ctx.fillStyle = hairColor;
+            ctx.beginPath();
+            ctx.arc(0, -57, 12, Math.PI * 0.85, Math.PI * 2.15);
+            ctx.fill();
+
+            // Barba si es Jesús / José / Apóstol
+            if (beard) {
+                ctx.fillStyle = hairColor;
+                ctx.beginPath();
+                ctx.moveTo(-9, -52);
+                ctx.quadraticCurveTo(0, -39, 9, -52);
+                ctx.quadraticCurveTo(0, -45, -9, -52);
+                ctx.fill();
+            }
+
+            // Rasgos faciales suaves y serenos
+            ctx.strokeStyle = 'rgba(69, 26, 3, 0.65)';
+            ctx.lineWidth = 1.1;
+            const eyeOffset = facing * 2.5;
+            ctx.beginPath();
+            ctx.arc(-3.5 + eyeOffset, -55, 1.5, 0, Math.PI);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(3.5 + eyeOffset, -55, 1.5, 0, Math.PI);
+            ctx.stroke();
+
+            // Corona real o corona de espinas
+            if (crown) {
+                ctx.fillStyle = '#fbbf24';
+                ctx.strokeStyle = '#fef08a';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(-10, -64);
+                ctx.lineTo(-8, -74);
+                ctx.lineTo(-3, -67);
+                ctx.lineTo(0, -76);
+                ctx.lineTo(3, -67);
+                ctx.lineTo(8, -74);
+                ctx.lineTo(10, -64);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            if (thorns) {
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.ellipse(0, -62, 12, 4, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = '#e11d48';
+                ctx.beginPath();
+                ctx.arc(-5, -59, 1.3, 0, Math.PI * 2);
+                ctx.arc(4, -58, 1.3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Brazos y manos según la pose
+            ctx.strokeStyle = robeColor;
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            if (armsPose === 'prayer') {
+                ctx.beginPath();
+                ctx.moveTo(-13, -32);
+                ctx.quadraticCurveTo(-8, -16, -2, -24);
+                ctx.moveTo(13, -32);
+                ctx.quadraticCurveTo(8, -16, 2, -24);
+                ctx.stroke();
+                // Manos juntas
+                ctx.fillStyle = skinColor;
+                ctx.beginPath();
+                ctx.ellipse(0, -26, 3.5, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (armsPose === 'open') {
+                ctx.beginPath();
+                ctx.moveTo(-14, -32);
+                ctx.quadraticCurveTo(-24, -22, -30, -28);
+                ctx.moveTo(14, -32);
+                ctx.quadraticCurveTo(24, -22, 30, -28);
+                ctx.stroke();
+                ctx.fillStyle = skinColor;
+                ctx.beginPath();
+                ctx.arc(-31, -29, 3.5, 0, Math.PI * 2);
+                ctx.arc(31, -29, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (armsPose === 'reaching') {
+                const dir = facing || 1;
+                ctx.beginPath();
+                ctx.moveTo(dir * 10, -32);
+                ctx.quadraticCurveTo(dir * 20, -26, dir * 28, -32);
+                ctx.stroke();
+                ctx.fillStyle = skinColor;
+                ctx.beginPath();
+                ctx.arc(dir * 29, -32, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        // Dibuja la paloma del Espíritu Santo con rayos de luz
+        function paintHolySpiritDove(ctx, x, y, scale = 1) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+
+            const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 42);
+            glow.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+            glow.addColorStop(0.4, 'rgba(253, 224, 71, 0.45)');
+            glow.addColorStop(1, 'rgba(253, 224, 71, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(0, 0, 42, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(0, -4);
+            ctx.bezierCurveTo(-18, -22, -34, -10, -22, 4);
+            ctx.quadraticCurveTo(-10, 4, -5, 12);
+            ctx.lineTo(0, 8);
+            ctx.lineTo(5, 12);
+            ctx.quadraticCurveTo(10, 4, 22, 4);
+            ctx.bezierCurveTo(34, -10, 18, -22, 0, -4);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // Genera una pintura sacra completa en alta resolución y devuelve un Data URL para usar en <img>
+        function generateMysteryPaintingDataUrl(artType, themeColor) {
+            const cacheKey = `${artType}_${themeColor}`;
+            if (MYSTERY_IMAGE_CACHE[cacheKey]) return MYSTERY_IMAGE_CACHE[cacheKey];
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 640;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+
+            // 1. Fondo atmosférico de óleo / vitral según el misterio
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, 300);
+            if (['garden', 'crucifixion', 'nativity', 'eucharist'].includes(artType)) {
+                skyGrad.addColorStop(0, '#090d1e');
+                skyGrad.addColorStop(0.55, '#1e1b4b');
+                skyGrad.addColorStop(1, '#31102f');
+            } else if (['pillar', 'crown_thorns', 'carrying_cross'].includes(artType)) {
+                skyGrad.addColorStop(0, '#1f0812');
+                skyGrad.addColorStop(0.6, '#4c0519');
+                skyGrad.addColorStop(1, '#1e1b2e');
+            } else if (['resurrection', 'ascension', 'assumption', 'coronation', 'transfiguration'].includes(artType)) {
+                skyGrad.addColorStop(0, '#1e1b4b');
+                skyGrad.addColorStop(0.45, '#3b0764');
+                skyGrad.addColorStop(1, '#78350f');
+            } else {
+                skyGrad.addColorStop(0, '#0c192c');
+                skyGrad.addColorStop(0.55, '#1e3a5f');
+                skyGrad.addColorStop(1, '#3b2818');
+            }
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, 640, 300);
+
+            // Estrellas suaves y textura de lienzo
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            const starCoords = [[55, 34], [120, 22], [210, 48], [430, 28], [520, 42], [585, 25], [85, 75], [560, 82]];
+            starCoords.forEach(([sx, sy]) => {
+                ctx.beginPath();
+                ctx.arc(sx, sy, 1.3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Resplandor divino central
+            const centerGlow = ctx.createRadialGradient(320, 120, 15, 320, 120, 240);
+            centerGlow.addColorStop(0, 'rgba(253, 224, 71, 0.35)');
+            centerGlow.addColorStop(0.5, 'rgba(245, 158, 11, 0.12)');
+            centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = centerGlow;
+            ctx.fillRect(0, 0, 640, 300);
+
+            // 2. Composición pictórica específica de cada uno de los 20 misterios
+            switch (artType) {
+                case 'intro': {
+                    // Altar luminoso con la Santa Cruz y el Rosario
+                    ctx.fillStyle = '#0f172a';
+                    ctx.beginPath();
+                    ctx.moveTo(0, 240);
+                    ctx.quadraticCurveTo(320, 195, 640, 240);
+                    ctx.lineTo(640, 300);
+                    ctx.lineTo(0, 300);
+                    ctx.fill();
+
+                    // Rayos dorados desde la Cruz
+                    for (let i = 0; i < 12; i++) {
+                        const ang = (i / 12) * Math.PI * 2;
+                        ctx.strokeStyle = 'rgba(253, 224, 71, 0.16)';
+                        ctx.lineWidth = 8;
+                        ctx.beginPath();
+                        ctx.moveTo(320, 125);
+                        ctx.lineTo(320 + Math.cos(ang) * 260, 125 + Math.sin(ang) * 260);
+                        ctx.stroke();
+                    }
+
+                    // Cruz de madera y oro
+                    ctx.fillStyle = '#b45309';
+                    ctx.strokeStyle = '#fde047';
+                    ctx.lineWidth = 3;
+                    ctx.fillRect(309, 42, 22, 175);
+                    ctx.strokeRect(309, 42, 22, 175);
+                    ctx.fillRect(255, 84, 130, 22);
+                    ctx.strokeRect(255, 84, 130, 22);
+                    break;
+                }
+
+                case 'annunciation': {
+                    // Suelo y columnas de Nazaret
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(0, 215, 640, 85);
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(70, 20, 26, 195);
+                    ctx.fillRect(544, 20, 26, 195);
+
+                    // Rayo de luz celestial desde el Espíritu Santo hacia María
+                    const beam = ctx.createLinearGradient(200, 10, 415, 200);
+                    beam.addColorStop(0, 'rgba(254, 249, 195, 0.55)');
+                    beam.addColorStop(1, 'rgba(253, 224, 71, 0.05)');
+                    ctx.fillStyle = beam;
+                    ctx.beginPath();
+                    ctx.moveTo(190, 0);
+                    ctx.lineTo(265, 0);
+                    ctx.lineTo(455, 215);
+                    ctx.lineTo(355, 215);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    paintHolySpiritDove(ctx, 295, 52, 0.9);
+                    // Arcángel San Gabriel a la izquierda
+                    paintSacredFigure(ctx, {
+                        x: 220, y: 182, scale: 1.08,
+                        robeColor: '#fef9c3', mantleColor: '#f59e0b',
+                        hairColor: '#b45309', wings: true, armsPose: 'reaching', facing: 1
+                    });
+                    // Virgen María arrodillada a la derecha
+                    paintSacredFigure(ctx, {
+                        x: 410, y: 192, scale: 1.05,
+                        robeColor: '#f8fafc', mantleColor: '#0284c7',
+                        hairColor: '#3b1704', kneeling: true, armsPose: 'prayer', facing: -1
+                    });
+                    break;
+                }
+
+                case 'visitation': {
+                    // Colinas de Judea al atardecer
+                    ctx.fillStyle = '#1e3a2f';
+                    ctx.beginPath();
+                    ctx.moveTo(0, 225);
+                    ctx.quadraticCurveTo(180, 165, 360, 210);
+                    ctx.quadraticCurveTo(510, 175, 640, 220);
+                    ctx.lineTo(640, 300);
+                    ctx.lineTo(0, 300);
+                    ctx.fill();
+
+                    // Casa de Zacarías e Isabel a la derecha
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(495, 95, 110, 125);
+                    ctx.fillStyle = '#1e293b';
+                    ctx.beginPath();
+                    ctx.arc(535, 220, 24, Math.PI, 0);
+                    ctx.fill();
+
+                    // Virgen María y Santa Isabel abrazándose en el centro
+                    paintSacredFigure(ctx, {
+                        x: 282, y: 185, scale: 1.1,
+                        robeColor: '#f1f5f9', mantleColor: '#0284c7',
+                        armsPose: 'reaching', facing: 1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 356, y: 185, scale: 1.1,
+                        robeColor: '#fef3c7', mantleColor: '#b45309',
+                        hairColor: '#64748b', armsPose: 'reaching', facing: -1
+                    });
+                    break;
+                }
+
+                case 'nativity': {
+                    // Colinas nocturnas de Belén
+                    ctx.fillStyle = '#172554';
+                    ctx.fillRect(0, 215, 640, 85);
+
+                    // Estrella de Belén e irradiación sobre el pesebre
+                    const starBeam = ctx.createLinearGradient(320, 20, 320, 225);
+                    starBeam.addColorStop(0, 'rgba(254, 240, 138, 0.65)');
+                    starBeam.addColorStop(1, 'rgba(254, 240, 138, 0.04)');
+                    ctx.fillStyle = starBeam;
+                    ctx.beginPath();
+                    ctx.moveTo(312, 28);
+                    ctx.lineTo(328, 28);
+                    ctx.lineTo(420, 225);
+                    ctx.lineTo(220, 225);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Estrella de 8 puntas
+                    ctx.fillStyle = '#fef08a';
+                    ctx.beginPath();
+                    ctx.arc(320, 32, 9, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fef08a';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.moveTo(320, 8); ctx.lineTo(320, 56);
+                    ctx.moveTo(296, 32); ctx.lineTo(344, 32);
+                    ctx.stroke();
+
+                    // Establo de madera rústica
+                    ctx.strokeStyle = '#92400e';
+                    ctx.lineWidth = 8;
+                    ctx.beginPath();
+                    ctx.moveTo(165, 115); ctx.lineTo(320, 58); ctx.lineTo(475, 115);
+                    ctx.moveTo(190, 108); ctx.lineTo(190, 225);
+                    ctx.moveTo(450, 108); ctx.lineTo(450, 225);
+                    ctx.stroke();
+
+                    // María y San José adorando al Niño
+                    paintSacredFigure(ctx, {
+                        x: 242, y: 192, scale: 1.0,
+                        robeColor: '#f8fafc', mantleColor: '#0284c7',
+                        kneeling: true, armsPose: 'prayer', facing: 1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 398, y: 182, scale: 1.05,
+                        robeColor: '#fde68a', mantleColor: '#78350f',
+                        beard: true, armsPose: 'prayer', facing: -1
+                    });
+
+                    // Pesebre con el Niño Jesús envuelto en pañales
+                    ctx.fillStyle = '#92400e';
+                    ctx.fillRect(288, 198, 64, 24);
+                    ctx.fillStyle = '#fde047';
+                    ctx.beginPath();
+                    ctx.ellipse(320, 195, 28, 8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.ellipse(320, 192, 16, 7, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#f5cba7';
+                    ctx.beginPath();
+                    ctx.arc(312, 190, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                }
+
+                case 'presentation': {
+                    // Interior solemne del Templo de Jerusalén
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(0, 215, 640, 85);
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(90, 15, 32, 200);
+                    ctx.fillRect(518, 15, 32, 200);
+
+                    // María y el anciano Simeón sosteniendo al Niño Jesús
+                    paintSacredFigure(ctx, {
+                        x: 250, y: 185, scale: 1.05,
+                        robeColor: '#f8fafc', mantleColor: '#0284c7',
+                        armsPose: 'reaching', facing: 1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 385, y: 185, scale: 1.08,
+                        robeColor: '#fef3c7', mantleColor: '#b45309',
+                        hairColor: '#e2e8f0', beard: true, armsPose: 'open', facing: -1
+                    });
+                    // Niño Jesús radiante en el centro
+                    ctx.fillStyle = '#fef08a';
+                    ctx.beginPath();
+                    ctx.arc(320, 152, 18, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.ellipse(320, 158, 12, 8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#f5cba7';
+                    ctx.beginPath();
+                    ctx.arc(320, 148, 6.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                }
+
+                case 'temple': {
+                    // Arcos del Templo y doctores de la Ley escuchando a Jesús niño
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(0, 220, 640, 80);
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(320, 140, 120, Math.PI, 0);
+                    ctx.stroke();
+
+                    // Doctores del templo a los lados
+                    paintSacredFigure(ctx, {
+                        x: 195, y: 188, scale: 0.98,
+                        robeColor: '#cbd5e1', mantleColor: '#475569',
+                        hairColor: '#94a3b8', beard: true, halo: false, facing: 1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 445, y: 188, scale: 0.98,
+                        robeColor: '#fde68a', mantleColor: '#78350f',
+                        hairColor: '#cbd5e1', beard: true, halo: false, facing: -1
+                    });
+                    // Niño Jesús de 12 años en el centro enseñando
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 190, scale: 0.88,
+                        robeColor: '#ffffff', mantleColor: '#dc2626',
+                        hairColor: '#78350f', armsPose: 'open', facing: 0
+                    });
+                    break;
+                }
+
+                case 'garden': {
+                    // Noche en el Huerto de Getsemaní con luna llena y olivos
+                    ctx.fillStyle = '#fef2f2';
+                    ctx.beginPath();
+                    ctx.arc(520, 62, 28, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Monte y roca de la agonía
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(0, 215, 640, 85);
+                    ctx.fillStyle = '#334155';
+                    ctx.beginPath();
+                    ctx.moveTo(335, 220);
+                    ctx.quadraticCurveTo(380, 135, 495, 165);
+                    ctx.lineTo(525, 220);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Cáliz luminoso de consuelo sobre la roca
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(415, 122, 8, 0, Math.PI);
+                    ctx.fillRect(413, 128, 4, 10);
+                    ctx.fillRect(408, 138, 14, 3);
+                    ctx.fill();
+
+                    // Jesús arrodillado orando junto a la roca
+                    paintSacredFigure(ctx, {
+                        x: 285, y: 192, scale: 1.1,
+                        robeColor: '#f8fafc', mantleColor: '#be123c',
+                        beard: true, kneeling: true, armsPose: 'prayer', facing: 1
+                    });
+                    break;
+                }
+
+                case 'pillar': {
+                    // Pretorio romano y columna de la flagelación
+                    ctx.fillStyle = '#1e1b2e';
+                    ctx.fillRect(0, 215, 640, 85);
+                    ctx.fillStyle = '#64748b';
+                    ctx.fillRect(302, 48, 36, 170);
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.fillRect(294, 42, 52, 12);
+                    ctx.fillRect(294, 208, 52, 12);
+
+                    // Cristo humilde junto a la columna con manto púrpura a los pies
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 185, scale: 1.1,
+                        robeColor: '#f5cba7', mantleColor: '#9f1239',
+                        beard: true, armsPose: 'prayer', facing: 0
+                    });
+                    break;
+                }
+
+                case 'crown_thorns': {
+                    // Primer plano solemne del Ecce Homo (Jesús con corona de espinas y manto púrpura)
+                    ctx.fillStyle = '#1f0916';
+                    ctx.fillRect(0, 215, 640, 85);
+
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 192, scale: 1.32,
+                        robeColor: '#f5cba7', mantleColor: '#be123c',
+                        beard: true, thorns: true, armsPose: 'prayer', facing: 0
+                    });
+                    break;
+                }
+
+                case 'carrying_cross': {
+                    // Camino empedrado de la Vía Dolorosa hacia el Calvario
+                    ctx.fillStyle = '#1e1b2e';
+                    ctx.beginPath();
+                    ctx.moveTo(0, 235);
+                    ctx.quadraticCurveTo(320, 175, 640, 215);
+                    ctx.lineTo(640, 300);
+                    ctx.lineTo(0, 300);
+                    ctx.fill();
+
+                    // Pesada Cruz de madera inclinada sobre los hombros de Jesús
+                    ctx.save();
+                    ctx.translate(330, 138);
+                    ctx.rotate(-0.42);
+                    ctx.fillStyle = '#78350f';
+                    ctx.strokeStyle = '#b45309';
+                    ctx.lineWidth = 2;
+                    ctx.fillRect(-115, -9, 230, 18);
+                    ctx.strokeRect(-115, -9, 230, 18);
+                    ctx.fillRect(-45, -55, 18, 110);
+                    ctx.strokeRect(-45, -55, 18, 110);
+                    ctx.restore();
+
+                    paintSacredFigure(ctx, {
+                        x: 315, y: 188, scale: 1.1,
+                        robeColor: '#fecdd3', mantleColor: '#9f1239',
+                        beard: true, thorns: true, armsPose: 'reaching', facing: -1
+                    });
+                    break;
+                }
+
+                case 'crucifixion': {
+                    // Monte Calvario con las tres cruces, María y San Juan al pie de la Cruz
+                    ctx.fillStyle = '#0f172a';
+                    ctx.beginPath();
+                    ctx.moveTo(0, 250);
+                    ctx.quadraticCurveTo(320, 165, 640, 250);
+                    ctx.lineTo(640, 300);
+                    ctx.lineTo(0, 300);
+                    ctx.fill();
+
+                    // Cruces laterales
+                    ctx.strokeStyle = '#64748b';
+                    ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(155, 78); ctx.lineTo(155, 215);
+                    ctx.moveTo(125, 108); ctx.lineTo(185, 108);
+                    ctx.moveTo(485, 78); ctx.lineTo(485, 215);
+                    ctx.moveTo(455, 108); ctx.lineTo(515, 108);
+                    ctx.stroke();
+
+                    // Cruz central de Jesús
+                    ctx.fillStyle = '#78350f';
+                    ctx.fillRect(311, 24, 18, 195);
+                    ctx.fillRect(245, 66, 150, 16);
+
+                    // Jesús en la Cruz
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 138, scale: 0.92,
+                        robeColor: '#f8fafc', mantleColor: '#f8fafc',
+                        beard: true, thorns: true, armsPose: 'open', facing: 0
+                    });
+
+                    // Virgen María y San Juan al pie de la Cruz
+                    paintSacredFigure(ctx, {
+                        x: 245, y: 195, scale: 0.85,
+                        robeColor: '#e2e8f0', mantleColor: '#1e3a8a',
+                        armsPose: 'prayer', facing: 1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 395, y: 195, scale: 0.85,
+                        robeColor: '#dcfce7', mantleColor: '#be123c',
+                        armsPose: 'prayer', facing: -1
+                    });
+                    break;
+                }
+
+                case 'resurrection': {
+                    // Sepulcro abierto y Cristo Resucitado triunfante en luz dorada
+                    const sun = ctx.createRadialGradient(320, 125, 10, 320, 125, 150);
+                    sun.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+                    sun.addColorStop(0.45, 'rgba(253, 224, 71, 0.65)');
+                    sun.addColorStop(1, 'rgba(253, 224, 71, 0)');
+                    ctx.fillStyle = sun;
+                    ctx.beginPath();
+                    ctx.arc(320, 125, 150, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(0, 218, 640, 82);
+
+                    // Piedra corrida del sepulcro a la izquierda
+                    ctx.fillStyle = '#475569';
+                    ctx.beginPath();
+                    ctx.arc(175, 185, 38, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Cristo Resucitado vestido de blanco radiante
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 175, scale: 1.18,
+                        robeColor: '#ffffff', mantleColor: '#fef08a',
+                        beard: true, armsPose: 'open', facing: 0
+                    });
+                    break;
+                }
+
+                case 'ascension': {
+                    // Nubes de gloria y Jesús elevándose al Cielo ante los Apóstoles
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(0, 232, 640, 68);
+
+                    // Nubes luminosas
+                    ctx.fillStyle = 'rgba(248, 250, 252, 0.85)';
+                    [[240, 175, 42], [290, 182, 48], [350, 180, 46], [400, 174, 40]].forEach(([cx, cy, r]) => {
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 135, scale: 1.12,
+                        robeColor: '#ffffff', mantleColor: '#fde047',
+                        beard: true, armsPose: 'open', facing: 0
+                    });
+                    break;
+                }
+
+                case 'pentecost': {
+                    // Cenáculo con María en el centro, Apóstoles y lenguas de fuego del Espíritu Santo
+                    ctx.fillStyle = '#1e1b4b';
+                    ctx.fillRect(0, 220, 640, 80);
+
+                    paintHolySpiritDove(ctx, 320, 44, 1.0);
+
+                    // María en el centro y dos apóstoles a los lados
+                    paintSacredFigure(ctx, {
+                        x: 215, y: 192, scale: 0.96,
+                        robeColor: '#fde68a', mantleColor: '#b45309',
+                        beard: true, armsPose: 'prayer', facing: 1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 186, scale: 1.08,
+                        robeColor: '#f8fafc', mantleColor: '#0284c7',
+                        armsPose: 'prayer', facing: 0
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 425, y: 192, scale: 0.96,
+                        robeColor: '#dcfce7', mantleColor: '#15803d',
+                        beard: true, armsPose: 'prayer', facing: -1
+                    });
+
+                    // Lenguas de fuego sobre cada cabeza
+                    [215, 320, 425].forEach(fx => {
+                        ctx.fillStyle = '#f97316';
+                        ctx.beginPath();
+                        ctx.moveTo(fx, 86);
+                        ctx.quadraticCurveTo(fx - 10, 104, fx, 114);
+                        ctx.quadraticCurveTo(fx + 10, 104, fx, 86);
+                        ctx.fill();
+                        ctx.fillStyle = '#fde047';
+                        ctx.beginPath();
+                        ctx.arc(fx, 104, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    break;
+                }
+
+                case 'assumption': {
+                    // Nubes celestiales y corona de 12 estrellas rodeando a la Virgen María
+                    ctx.fillStyle = 'rgba(224, 242, 254, 0.85)';
+                    [[245, 195, 38], [295, 202, 46], [345, 200, 46], [395, 195, 38]].forEach(([cx, cy, r]) => {
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+
+                    // 12 Estrellas en arco sobre la Virgen
+                    ctx.fillStyle = '#fde047';
+                    for (let i = 0; i < 12; i++) {
+                        const a = Math.PI + (i / 11) * Math.PI;
+                        const sx = 320 + Math.cos(a) * 68;
+                        const sy = 105 + Math.sin(a) * 52;
+                        ctx.beginPath();
+                        ctx.arc(sx, sy, 3.2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 162, scale: 1.15,
+                        robeColor: '#ffffff', mantleColor: '#0284c7',
+                        armsPose: 'open', facing: 0
+                    });
+                    break;
+                }
+
+                case 'coronation': {
+                    // Coronación de la Virgen María como Reina del Cielo y de la Tierra
+                    paintHolySpiritDove(ctx, 320, 42, 0.9);
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 185, scale: 1.22,
+                        robeColor: '#ffffff', mantleColor: '#0284c7',
+                        crown: true, armsPose: 'prayer', facing: 0
+                    });
+                    break;
+                }
+
+                case 'baptism': {
+                    // Río Jordán, San Juan Bautista bautizando a Jesús y el Espíritu Santo
+                    ctx.fillStyle = '#0369a1';
+                    ctx.fillRect(0, 205, 640, 95);
+
+                    // Ondas luminosas del agua del Jordán
+                    ctx.strokeStyle = '#7dd3fc';
+                    ctx.lineWidth = 3;
+                    for (let row = 0; row < 3; row++) {
+                        ctx.beginPath();
+                        ctx.moveTo(80, 222 + row * 18);
+                        ctx.bezierCurveTo(220, 210 + row * 18, 420, 234 + row * 18, 560, 222 + row * 18);
+                        ctx.stroke();
+                    }
+
+                    paintHolySpiritDove(ctx, 300, 45, 0.95);
+
+                    // Jesús en las aguas del Jordán
+                    paintSacredFigure(ctx, {
+                        x: 300, y: 188, scale: 1.08,
+                        robeColor: '#f8fafc', mantleColor: '#0284c7',
+                        beard: true, armsPose: 'prayer', facing: 0
+                    });
+                    // San Juan Bautista sobre la orilla derecha
+                    paintSacredFigure(ctx, {
+                        x: 410, y: 175, scale: 1.05,
+                        robeColor: '#d97706', mantleColor: '#78350f',
+                        beard: true, armsPose: 'reaching', facing: -1
+                    });
+                    break;
+                }
+
+                case 'cana': {
+                    // Las Bodas de Caná: Jesús, María y las 6 tinajas de piedra convirtiendo el agua en vino
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(0, 215, 640, 85);
+
+                    paintSacredFigure(ctx, {
+                        x: 235, y: 182, scale: 1.05,
+                        robeColor: '#f8fafc', mantleColor: '#0284c7',
+                        armsPose: 'prayer', facing: 1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 335, y: 182, scale: 1.08,
+                        robeColor: '#ffffff', mantleColor: '#be123c',
+                        beard: true, armsPose: 'reaching', facing: 1
+                    });
+
+                    // Tinajas de piedra con destello de vino nuevo
+                    [425, 470, 515].forEach((jx, idx) => {
+                        ctx.fillStyle = idx === 0 ? '#be123c' : '#b45309';
+                        ctx.strokeStyle = '#fde68a';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.ellipse(jx, 195, 16, 24, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.fillRect(jx - 9, 166, 18, 8);
+                    });
+                    break;
+                }
+
+                case 'kingdom': {
+                    // Jesús predicando las Bienaventuranzas y el Reino de Dios en el monte de Galilea
+                    ctx.fillStyle = '#14532d';
+                    ctx.beginPath();
+                    ctx.moveTo(0, 235);
+                    ctx.quadraticCurveTo(320, 155, 640, 235);
+                    ctx.lineTo(640, 300);
+                    ctx.lineTo(0, 300);
+                    ctx.fill();
+
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 162, scale: 1.15,
+                        robeColor: '#ffffff', mantleColor: '#0284c7',
+                        beard: true, armsPose: 'open', facing: 0
+                    });
+                    // Discípulos escuchando
+                    paintSacredFigure(ctx, {
+                        x: 190, y: 205, scale: 0.88,
+                        robeColor: '#fde68a', mantleColor: '#78350f',
+                        halo: false, kneeling: true, armsPose: 'prayer', facing: 1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 450, y: 205, scale: 0.88,
+                        robeColor: '#cbd5e1', mantleColor: '#334155',
+                        halo: false, kneeling: true, armsPose: 'prayer', facing: -1
+                    });
+                    break;
+                }
+
+                case 'transfiguration': {
+                    // Monte Tabor: Jesús resplandeciente de luz entre Moisés y Elías
+                    ctx.fillStyle = '#1e293b';
+                    ctx.beginPath();
+                    ctx.moveTo(60, 260);
+                    ctx.quadraticCurveTo(320, 120, 580, 260);
+                    ctx.lineTo(640, 300);
+                    ctx.lineTo(0, 300);
+                    ctx.fill();
+
+                    const taborGlow = ctx.createRadialGradient(320, 125, 10, 320, 125, 160);
+                    taborGlow.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+                    taborGlow.addColorStop(0.5, 'rgba(56, 189, 248, 0.45)');
+                    taborGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+                    ctx.fillStyle = taborGlow;
+                    ctx.beginPath();
+                    ctx.arc(320, 125, 160, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    paintSacredFigure(ctx, {
+                        x: 205, y: 178, scale: 0.92,
+                        robeColor: '#e2e8f0', mantleColor: '#64748b',
+                        hairColor: '#f8fafc', beard: true, armsPose: 'prayer', facing: 1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 158, scale: 1.18,
+                        robeColor: '#ffffff', mantleColor: '#fef9c3',
+                        beard: true, armsPose: 'open', facing: 0
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 435, y: 178, scale: 0.92,
+                        robeColor: '#fef3c7', mantleColor: '#92400e',
+                        hairColor: '#f8fafc', beard: true, armsPose: 'prayer', facing: -1
+                    });
+                    break;
+                }
+
+                case 'eucharist': {
+                    // La Última Cena: Jesús en la mesa consagrando el Pan y el Cáliz
+                    paintSacredFigure(ctx, {
+                        x: 215, y: 178, scale: 0.95,
+                        robeColor: '#dcfce7', mantleColor: '#0369a1',
+                        beard: true, armsPose: 'prayer', facing: 1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 425, y: 178, scale: 0.95,
+                        robeColor: '#fef3c7', mantleColor: '#b45309',
+                        beard: true, armsPose: 'prayer', facing: -1
+                    });
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 172, scale: 1.12,
+                        robeColor: '#ffffff', mantleColor: '#be123c',
+                        beard: true, armsPose: 'open', facing: 0
+                    });
+
+                    // Mesa con mantel blanco de la Última Cena
+                    ctx.fillStyle = '#f8fafc';
+                    ctx.fillRect(110, 198, 420, 55);
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.fillRect(110, 238, 420, 18);
+
+                    // Santo Cáliz y Sagrada Hostia radiante sobre la mesa
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(320, 182, 11, 0, Math.PI);
+                    ctx.fillRect(317, 192, 6, 12);
+                    ctx.fillRect(309, 203, 22, 4);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.strokeStyle = '#fde047';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(320, 162, 11, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    break;
+                }
+
+                case 'angelus': {
+                    // Campana dorada del Ángelus y María en oración
+                    paintSacredFigure(ctx, {
+                        x: 320, y: 185, scale: 1.12,
+                        robeColor: '#ffffff', mantleColor: '#0284c7',
+                        armsPose: 'prayer', facing: 0
+                    });
+                    paintHolySpiritDove(ctx, 320, 46, 0.9);
+                    break;
+                }
+            }
+
+            // 3. Viñeta cinematográfica inferior con la leyenda de la escena
+            const bottomFade = ctx.createLinearGradient(0, 210, 0, 300);
+            bottomFade.addColorStop(0, 'rgba(2, 6, 23, 0)');
+            bottomFade.addColorStop(0.65, 'rgba(2, 6, 23, 0.82)');
+            bottomFade.addColorStop(1, 'rgba(2, 6, 23, 0.96)');
+            ctx.fillStyle = bottomFade;
+            ctx.fillRect(0, 210, 640, 90);
+
+            // Marco dorado interior de estampa devocional
+            ctx.strokeStyle = 'rgba(253, 224, 71, 0.28)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(8, 8, 624, 284);
+
+            // Texto descriptivo en la parte inferior de la imagen
+            const caption = MYSTERY_CAPTIONS[artType] || MYSTERY_CAPTIONS.intro;
+            ctx.fillStyle = '#fef3c7';
+            ctx.font = '600 15px "Plus Jakarta Sans", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(caption, 320, 276);
+
+            const dataUrl = canvas.toDataURL('image/png');
+            MYSTERY_IMAGE_CACHE[cacheKey] = dataUrl;
+            return dataUrl;
+        }
+
+        function getSceneIllustration(artType, color) {
+            const imgSrc = generateMysteryPaintingDataUrl(artType, color);
+            const altText = MYSTERY_CAPTIONS[artType] || 'Imagen del Misterio del Rosario';
+            return `
+                <img src="${imgSrc}" alt="${altText}" class="w-full h-full object-cover select-none" draggable="false" />
+            `;
+        }
+
+        /* =========================================================================
+           5. CONSTRUCCIÓN DE LA SECUENCIA COMPLETA DEL ROSARIO
+           ========================================================================= */
+        let currentMysteryKey = 'luminosos';
+        let stepsSequence = [];
+        let currentStepIndex = 0;
+
+        // Estado físico para la animación fluida y movimiento suave continuo de las cuentas en la mano
+        let visualBeadIndex = 0;
+        let targetBeadIndex = 0;
+        let swayPhase = 0;
+        let impulseSway = 0;
+
+        function buildStepsForMystery(mysteryKey) {
+            const mGroup = MYSTERIES_DATA[mysteryKey];
+            const list = [];
+            let physicalPos = 0;
+
+            // 1. Señal de la Cruz (Se reza sosteniendo la única Santa Cruz: posición física 0)
+            list.push({
+                beadKind: 'cross',
+                physicalSlot: physicalPos,
+                pillText: 'Santa Cruz',
+                mysteryHeader: `Inicio • ${mGroup.name}`,
+                prayerName: PRAYERS.signOfCross.title,
+                prayerHtml: PRAYERS.signOfCross.html,
+                art: 'intro'
+            });
+
+            // 2. Credo (Se reza sobre esa misma Santa Cruz, sin duplicar otra cruz en la cadena)
+            list.push({
+                beadKind: 'cross',
+                physicalSlot: physicalPos,
+                pillText: 'Santa Cruz • Credo',
+                mysteryHeader: `Inicio • ${mGroup.name}`,
+                prayerName: PRAYERS.creed.title,
+                prayerHtml: PRAYERS.creed.html,
+                art: 'intro'
+            });
+
+            // 3. Pésame (Primera cuenta grande luego del Crucifijo)
+            physicalPos++;
+            list.push({
+                beadKind: 'father',
+                physicalSlot: physicalPos,
+                pillText: 'Cuenta • Pésame',
+                mysteryHeader: `Inicio • ${mGroup.name}`,
+                prayerName: PRAYERS.pesame.title,
+                prayerHtml: PRAYERS.pesame.html,
+                art: 'intro'
+            });
+
+            // 4. Los 5 Misterios (Padre Nuestro + 10 Ave Marías + Gloria + Fátima)
+            mGroup.items.forEach((mItem, idx) => {
+                const mNum = idx + 1;
+
+                // Padre Nuestro
+                physicalPos++;
+                list.push({
+                    beadKind: 'father',
+                    physicalSlot: physicalPos,
+                    pillText: `${mNum}° Misterio • P. Nuestro`,
+                    mysteryHeader: mItem.title,
+                    prayerName: 'Padre Nuestro',
+                    prayerHtml: PRAYERS.ourFather.html,
+                    art: mItem.art,
+                    mysteryNumber: mNum
+                });
+
+                // 10 Ave Marías
+                for (let ave = 1; ave <= 10; ave++) {
+                    physicalPos++;
+                    list.push({
+                        beadKind: 'ave',
+                        aveNumber: ave,
+                        physicalSlot: physicalPos,
+                        pillText: `Ave María ${ave}/10`,
+                        mysteryHeader: mItem.title,
+                        prayerName: `Ave María (${ave} de 10)`,
+                        prayerHtml: PRAYERS.hailMary.html,
+                        art: mItem.art,
+                        mysteryNumber: mNum
+                    });
+                }
+
+                // Gloria y Oración de Fátima (se rezan en el engarce / espacio antes del siguiente misterio)
+                physicalPos++;
+                list.push({
+                    beadKind: 'space_glory',
+                    physicalSlot: physicalPos,
+                    pillText: `${mNum}° Misterio • Gloria`,
+                    mysteryHeader: mItem.title,
+                    prayerName: PRAYERS.glory.title,
+                    prayerHtml: PRAYERS.glory.html,
+                    art: mItem.art,
+                    mysteryNumber: mNum
+                });
+
+                list.push({
+                    beadKind: 'space_fatima',
+                    physicalSlot: physicalPos,
+                    pillText: `${mNum}° Misterio • Fátima`,
+                    mysteryHeader: mItem.title,
+                    prayerName: PRAYERS.fatima.title,
+                    prayerHtml: PRAYERS.fatima.html,
+                    art: mItem.art,
+                    mysteryNumber: mNum
+                });
+            });
+
+            // 5. Al finalizar los 5 misterios: El Ángelus en la Medalla Central
+            physicalPos++;
+            list.push({
+                beadKind: 'medal',
+                physicalSlot: physicalPos,
+                pillText: 'Medalla • Ángelus',
+                mysteryHeader: 'Oración Final del Rosario',
+                prayerName: PRAYERS.angelus.title,
+                prayerHtml: PRAYERS.angelus.html,
+                art: 'angelus'
+            });
+
+            return list;
+        }
+
+        // Devuelve la lista de piezas físicas únicas del rosario (sin duplicar la cruz ni los engarces)
+        function getUniquePhysicalBeads() {
+            const map = new Map();
+            stepsSequence.forEach((step, idx) => {
+                if (!map.has(step.physicalSlot)) {
+                    map.set(step.physicalSlot, { ...step, stepIndices: [idx] });
+                } else {
+                    map.get(step.physicalSlot).stepIndices.push(idx);
+                }
+            });
+            return Array.from(map.values());
+        }
+
+        /* =========================================================================
+           6. RENDERIZADO REALISTA DEL ROSARIO EN LA MANO Y ANIMACIÓN DE DESLIZAMIENTO
+           ========================================================================= */
+        // Curva orgánica con balanceo suave por donde pasa el cordón del rosario entre el índice y el pulgar
+        function getCordPoint(offsetSlots) {
+            // offsetSlots = 0 es exactamente donde pellizcan el pulgar y el índice (x=150, y=168)
+            const y = 168 + offsetSlots * 46;
+
+            // Balanceo tipo péndulo: más pronunciado en las cuentas que cuelgan hacia abajo (offsetSlots > 0)
+            const hangingFactor = Math.max(0, offsetSlots + 0.35);
+            const naturalSway = Math.sin(swayPhase + offsetSlots * 0.55) * (1.8 + hangingFactor * 2.1);
+            const pushWave = Math.sin(offsetSlots * 0.9) * impulseSway * (1 + hangingFactor * 0.5);
+
+            // Curvatura natural del rosario cayendo sobre la mano
+            const curveX = Math.sin(offsetSlots * 0.42) * 12 - (offsetSlots < 0 ? Math.pow(Math.abs(offsetSlots), 1.25) * 6 : 0);
+            const x = 150 + curveX + naturalSway + pushWave;
+            return { x, y };
+        }
+
+        function renderHandRosaryFrame(continuousPhysicalSlot) {
+            const layer = document.getElementById('rosaryChainLayer');
+            if (!layer || !stepsSequence.length) return;
+            layer.innerHTML = '';
+
+            const physicalBeads = getUniquePhysicalBeads();
+            const maxSlot = physicalBeads.length - 1;
+
+            // Limitar el dibujo de la cadena únicamente desde la Cruz (slot 0) hasta la Medalla final
+            const startS = Math.max(-0.15 - continuousPhysicalSlot, -3.6);
+            const endS = Math.min(maxSlot - continuousPhysicalSlot + 0.35, 4.6);
+
+            // 1. Dibujar eslabones entrelazados realistas de plata para la cadena
+            let pathD = '';
+            const linkPoints = [];
+            for (let s = startS; s <= endS; s += 0.2) {
+                const pt = getCordPoint(s);
+                linkPoints.push(pt);
+                pathD += (pathD === '' ? `M ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}` : ` L ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`);
+            }
+
+            if (pathD) {
+                // Sombra profunda de la cadena
+                const chainShadow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                chainShadow.setAttribute('d', pathD);
+                chainShadow.setAttribute('fill', 'none');
+                chainShadow.setAttribute('stroke', 'rgba(2, 6, 23, 0.85)');
+                chainShadow.setAttribute('stroke-width', '5.5');
+                chainShadow.setAttribute('stroke-linecap', 'round');
+                layer.appendChild(chainShadow);
+
+                // Hilo central metálico
+                const chainCore = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                chainCore.setAttribute('d', pathD);
+                chainCore.setAttribute('fill', 'none');
+                chainCore.setAttribute('stroke', '#64748b');
+                chainCore.setAttribute('stroke-width', '2.2');
+                layer.appendChild(chainCore);
+
+                // Eslabones ovalados de plata con brillo especular
+                const chainMetal = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                chainMetal.setAttribute('d', pathD);
+                chainMetal.setAttribute('fill', 'none');
+                chainMetal.setAttribute('stroke', 'url(#metalSilver)');
+                chainMetal.setAttribute('stroke-width', '3.6');
+                chainMetal.setAttribute('stroke-linecap', 'round');
+                chainMetal.setAttribute('stroke-dasharray', '4 5');
+                layer.appendChild(chainMetal);
+            }
+
+            // 2. Dibujar cada cuenta física única cercana a la mano
+            const activePhysicalSlot = stepsSequence[currentStepIndex]?.physicalSlot ?? 0;
+
+            physicalBeads.forEach((bead) => {
+                const relativeSlot = bead.physicalSlot - continuousPhysicalSlot; // 0 = exactamente en los dedos
+                if (relativeSlot < -3.6 || relativeSlot > 4.6) return;
+
+                const pt = getCordPoint(relativeSlot);
+                const ptAbove = getCordPoint(relativeSlot - 0.22);
+                const ptBelow = getCordPoint(relativeSlot + 0.22);
+                const angleDeg = Math.atan2(ptBelow.x - ptAbove.x, ptBelow.y - ptAbove.y) * (-180 / Math.PI) * 0.45;
+
+                const isActive = bead.physicalSlot === activePhysicalSlot;
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+                if (bead.beadKind === 'cross') {
+                    // ÚNICO CRUCIFIJO REALISTA 3D (Madera noble incrustada en oro + Cristo en relieve + INRI)
+                    const crossRot = angleDeg + Math.sin(swayPhase * 1.1) * 2.2;
+                    g.innerHTML = `
+                        <g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}) rotate(${crossRot.toFixed(2)})" filter="url(#beadDropShadow)">
+                            ${isActive ? `<circle cx="0" cy="6" r="28" fill="#f59e0b" fill-opacity="0.28" filter="url(#activeBeadGlow)"/>` : ''}
+                            <!-- Argolla superior de engarce -->
+                            <circle cx="0" cy="-26" r="4.2" fill="none" stroke="url(#goldCrossGrad)" stroke-width="2.4"/>
+                            <!-- Base biselada de oro del Crucifijo -->
+                            <rect x="-6.5" y="-23" width="13" height="54" rx="3" fill="url(#goldCrossGrad)" stroke="${isActive ? '#ffffff' : '#fef08a'}" stroke-width="${isActive ? 1.8 : 0.9}"/>
+                            <rect x="-20" y="-11" width="40" height="12" rx="3" fill="url(#goldCrossGrad)" stroke="${isActive ? '#ffffff' : '#fef08a'}" stroke-width="${isActive ? 1.8 : 0.9}"/>
+                            <!-- Interior de madera de ébano/olivo -->
+                            <rect x="-4" y="-20.5" width="8" height="49" rx="1.5" fill="#451a03"/>
+                            <rect x="-17.5" y="-8.5" width="35" height="7" rx="1.5" fill="#451a03"/>
+                            <!-- Cartela INRI -->
+                            <rect x="-4.5" y="-18" width="9" height="3.5" rx="0.8" fill="#fef08a"/>
+                            <!-- Figura estilizada en relieve dorado del Cuerpo de Cristo -->
+                            <path d="M -12 -5.5 Q 0 -3 12 -5.5 M 0 -8 V 14 M -3 14 L 0 7 L 3 14" stroke="#fde68a" stroke-width="2.1" stroke-linecap="round" fill="none"/>
+                            <circle cx="0" cy="-8.5" r="2.8" fill="#fef08a"/>
+                        </g>
+                    `;
+                } else if (bead.beadKind === 'medal') {
+                    // MEDALLA MILAGROSA CENTRAL (Biselada en oro y plata con relieve mariano)
+                    g.innerHTML = `
+                        <g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}) rotate(${angleDeg.toFixed(2)})" filter="url(#beadDropShadow)">
+                            <circle cx="0" cy="-19" r="3" fill="none" stroke="url(#metalSilver)" stroke-width="2"/>
+                            <circle cx="0" cy="19" r="3" fill="none" stroke="url(#metalSilver)" stroke-width="2"/>
+                            <ellipse cx="0" cy="0" rx="14.5" ry="18.5" fill="url(#goldCrossGrad)" stroke="${isActive ? '#ffffff' : '#fef08a'}" stroke-width="${isActive ? 2.2 : 1.2}"/>
+                            <ellipse cx="0" cy="0" rx="11" ry="14.5" fill="#0c4a6e" stroke="#bae6fd" stroke-width="0.9"/>
+                            <text x="0" y="4.5" text-anchor="middle" fill="#fef08a" font-size="11.5" font-weight="800" font-family="serif">M</text>
+                            <ellipse cx="-4" cy="-6" rx="4" ry="2" transform="rotate(-25 -4 -6)" fill="#ffffff" opacity="0.45"/>
+                        </g>
+                    `;
+                } else if (bead.beadKind === 'father') {
+                    // CUENTA GRANDE DEL PADRE NUESTRO / PÉSAME (Esfera de nácar/lapislázuli con casquillos de filigrana)
+                    const r = isActive ? 15.8 : 13.8;
+                    g.innerHTML = `
+                        <g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}) rotate(${angleDeg.toFixed(2)})" filter="url(#beadDropShadow)">
+                            <!-- Casquillos metálicos superior e inferior (Capuchones de filigrana) -->
+                            <path d="M -6 -${r + 2.2} Q 0 -${r + 5} 6 -${r + 2.2} L 8 -${r - 2} Q 0 -${r} -8 -${r - 2} Z" fill="url(#goldCrossGrad)" stroke="#fef08a" stroke-width="0.6"/>
+                            <path d="M -6 ${r + 2.2} Q 0 ${r + 5} 6 ${r + 2.2} L 8 ${r - 2} Q 0 ${r} -8 ${r - 2} Z" fill="url(#goldCrossGrad)" stroke="#fef08a" stroke-width="0.6"/>
+                            <!-- Esfera principal 3D -->
+                            <circle cx="0" cy="0" r="${r}" fill="${isActive ? 'url(#beadActive3D)' : 'url(#beadFather3D)'}" 
+                                    stroke="${isActive ? '#ffffff' : 'rgba(255,255,255,0.45)'}" stroke-width="${isActive ? 2.2 : 1}"
+                                    ${isActive ? 'filter="url(#activeBeadGlow)"' : ''}/>
+                            <!-- Anillo ecuatorial sutil tallado en la cuenta -->
+                            <ellipse cx="0" cy="0" rx="${r - 0.5}" ry="${r * 0.32}" fill="none" stroke="#ffffff" stroke-opacity="0.28" stroke-width="1"/>
+                            <!-- Doble brillo especular tipo cristal/perla -->
+                            <ellipse cx="${-r * 0.32}" cy="${-r * 0.34}" rx="${r * 0.34}" ry="${r * 0.19}" transform="rotate(-28 ${-r * 0.32} ${-r * 0.34})" fill="#ffffff" opacity="0.78"/>
+                            <circle cx="${r * 0.32}" cy="${r * 0.34}" r="${r * 0.1}" fill="#ffffff" opacity="0.35"/>
+                        </g>
+                    `;
+                } else if (bead.beadKind === 'ave') {
+                    // CUENTA DEL AVE MARÍA (Madera de olivo torneada con vetas orgánicas, casquillos de plata y brillo de barniz)
+                    const r = isActive ? 14.4 : 11.8;
+                    g.innerHTML = `
+                        <g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}) rotate(${angleDeg.toFixed(2)})" filter="url(#beadDropShadow)">
+                            <!-- Casquillos de plata en los polos donde entra la cadena -->
+                            <ellipse cx="0" cy="${-r + 0.5}" rx="4.2" ry="1.8" fill="url(#metalSilver)"/>
+                            <ellipse cx="0" cy="${r - 0.5}" rx="4.2" ry="1.8" fill="url(#metalSilver)"/>
+                            <!-- Cuerpo de madera de olivo 3D -->
+                            <circle cx="0" cy="0" r="${r}" fill="${isActive ? 'url(#beadActive3D)' : 'url(#beadWood3D)'}" 
+                                    stroke="${isActive ? '#ffffff' : 'rgba(253, 230, 138, 0.38)'}" stroke-width="${isActive ? 2 : 0.8}"
+                                    ${isActive ? 'filter="url(#activeBeadGlow)"' : ''}/>
+                            <!-- Vetas curvas naturales de la madera -->
+                            <path d="M ${-r * 0.65} ${-r * 0.2} Q 0 ${r * 0.35} ${r * 0.65} ${-r * 0.15}" fill="none" stroke="#451a03" stroke-opacity="0.35" stroke-width="1.2" stroke-linecap="round"/>
+                            <path d="M ${-r * 0.5} ${r * 0.35} Q 0 ${r * 0.6} ${r * 0.55} ${r * 0.25}" fill="none" stroke="#451a03" stroke-opacity="0.3" stroke-width="1" stroke-linecap="round"/>
+                            <!-- Brillo especular de madera barnizada -->
+                            <ellipse cx="${-r * 0.32}" cy="${-r * 0.32}" rx="${r * 0.3}" ry="${r * 0.16}" transform="rotate(-25 ${-r * 0.32} ${-r * 0.32})" fill="#ffffff" opacity="0.65"/>
+                            <!-- Número de Ave María grabado con elegancia -->
+                            <text x="0" y="3.8" text-anchor="middle" fill="${isActive ? '#451a03' : '#fef3c7'}" font-size="${isActive ? '10.5' : '9.5'}" font-weight="800">${bead.aveNumber}</text>
+                        </g>
+                    `;
+                } else {
+                    // ENGARCE METÁLICO ENTRE DECENAS (Donde se reza el Gloria y la Oración de Fátima)
+                    const r = isActive ? 8.5 : 5.8;
+                    g.innerHTML = `
+                        <g transform="translate(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})" filter="url(#beadDropShadow)">
+                            <circle cx="0" cy="0" r="${r}" fill="url(#goldCrossGrad)" stroke="#ffffff" stroke-width="${isActive ? 2 : 1}" ${isActive ? 'filter="url(#activeBeadGlow)"' : ''}/>
+                            <circle cx="${-r * 0.28}" cy="${-r * 0.28}" r="${r * 0.28}" fill="#ffffff" opacity="0.75"/>
+                        </g>
+                    `;
+                }
+
+                layer.appendChild(g);
+            });
+        }
+
+        // Bucle de animación suave y continua (interpola el paso de cuentas + el balanceo natural del rosario)
+        function startContinuousRosaryLoop() {
+            function loop() {
+                swayPhase += 0.032;
+
+                // Interpolación suave (lerp con amortiguación orgánica) hacia la cuenta física objetivo
+                const diff = targetBeadIndex - visualBeadIndex;
+                visualBeadIndex += diff * 0.14;
+
+                // Amortiguación suave del impulso de balanceo al tocar/pasar una cuenta
+                impulseSway *= 0.91;
+
+                // Respiración suave del halo luminoso detrás de los dedos
+                const halo = document.getElementById('activeHaloGlow');
+                if (halo) {
+                    const pulseR = 36 + Math.sin(swayPhase * 1.6) * 4;
+                    halo.setAttribute('r', pulseR.toFixed(1));
+                }
+
+                renderHandRosaryFrame(visualBeadIndex);
+                requestAnimationFrame(loop);
+            }
+            requestAnimationFrame(loop);
+        }
+
+        // Anima el deslizamiento hacia la cuenta física correspondiente y el gesto del pulgar
+        function animateToStep(newStepIdx, direction = 1) {
+            const stepObj = stepsSequence[newStepIdx];
+            const newPhysicalSlot = stepObj ? stepObj.physicalSlot : 0;
+            const slotChanged = Math.abs(newPhysicalSlot - targetBeadIndex) > 0.01;
+
+            targetBeadIndex = newPhysicalSlot;
+            impulseSway = (direction >= 0 ? 1 : -1) * (slotChanged ? 5.5 : 2.5);
+
+            // Gesto físico del pulgar empujando la cuenta
+            const thumb = document.getElementById('thumbGroup');
+            if (thumb) {
+                thumb.classList.remove('thumb-push-down', 'thumb-push-up');
+                thumb.classList.add(direction >= 0 ? 'thumb-push-down' : 'thumb-push-up');
+                setTimeout(() => {
+                    thumb.classList.remove('thumb-push-down', 'thumb-push-up');
+                }, 240);
+            }
+        }
+
+        /* =========================================================================
+           7. ACTUALIZACIÓN DE LA VISTA INTEGRADA (ORACIÓN + ESCENA + ROSARIO)
+           ========================================================================= */
+        function updatePrayerView(direction = 1) {
+            const step = stepsSequence[currentStepIndex];
+            const mGroup = MYSTERIES_DATA[currentMysteryKey];
+            const total = stepsSequence.length;
+
+            // 1. Animar el rosario en la mano
+            animateToStep(currentStepIndex, direction);
+
+            // 2. Actualizar etiqueta de la cuenta y progreso
+            document.getElementById('beadCounterPill').textContent = step.pillText;
+            document.getElementById('stepProgressBadge').textContent = `${currentStepIndex + 1} / ${total}`;
+            document.getElementById('sceneBadge').textContent = mGroup.name;
+
+            // 3. Actualizar la ilustración de lo que sucede en el misterio
+            document.getElementById('mysteryArtBox').innerHTML = getSceneIllustration(step.art, mGroup.color);
+
+            // 4. Actualizar Misterio, Nombre de la Oración y Texto para rezar
+            document.getElementById('currentMysteryHeader').textContent = step.mysteryHeader;
+            document.getElementById('currentPrayerName').textContent = step.prayerName;
+
+            const textBox = document.getElementById('prayerTextBox');
+            textBox.classList.remove('prayer-fade');
+            void textBox.offsetWidth;
+            textBox.classList.add('prayer-fade');
+            document.getElementById('currentPrayerBody').innerHTML = step.prayerHtml;
+
+            // 5. Puntitos rápidos de las 10 Ave Marías si estamos dentro de una decena
+            const dotsBox = document.getElementById('miniDecadeDots');
+            if (step.beadKind === 'ave') {
+                dotsBox.classList.remove('hidden');
+                dotsBox.classList.add('flex');
+                let dotsHtml = '';
+                for (let i = 1; i <= 10; i++) {
+                    const activeDot = i === step.aveNumber;
+                    const passedDot = i < step.aveNumber;
+                    dotsHtml += `<span class="w-2 h-2 rounded-full transition-all ${
+                        activeDot ? 'w-3 h-3 bg-amber-400 shadow shadow-amber-400' : passedDot ? 'bg-sky-400' : 'bg-slate-700'
+                    }"></span>`;
+                }
+                dotsBox.innerHTML = dotsHtml;
+            } else {
+                dotsBox.classList.add('hidden');
+                dotsBox.classList.remove('flex');
+            }
+
+            // 6. Estado de botones Anterior y Siguiente
+            document.getElementById('prevBtn').disabled = currentStepIndex === 0;
+            const nextLabel = document.getElementById('nextBtnLabel');
+            if (currentStepIndex === total - 1) {
+                nextLabel.textContent = 'Finalizar Rosario';
+            } else {
+                nextLabel.textContent = 'Pasar Cuenta';
+            }
+        }
+
+        /* =========================================================================
+           8. NAVEGACIÓN Y PANTALLA DE INICIO CON LOS 4 MISTERIOS
+           ========================================================================= */
+        function getRecommendedMysteryForToday() {
+            const day = new Date().getDay();
+            for (const key in MYSTERIES_DATA) {
+                if (MYSTERIES_DATA[key].dayNumbers.includes(day)) return key;
+            }
+            return 'gozosos';
+        }
+
+        function renderHomeMysteryCards() {
+            const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const todayName = dayNames[new Date().getDay()];
+            const recommendedKey = getRecommendedMysteryForToday();
+            const recGroup = MYSTERIES_DATA[recommendedKey];
+
+            document.getElementById('todayRecommendationText').innerHTML =
+                `Hoy es <strong>${todayName}</strong> • Corresponden los <strong>${recGroup.name}</strong>`;
+
+            const grid = document.getElementById('mysteryGrid');
+            grid.innerHTML = '';
+
+            Object.values(MYSTERIES_DATA).forEach(m => {
+                const isToday = m.id === recommendedKey;
+                const btn = document.createElement('button');
+                btn.onclick = () => startMystery(m.id);
+                btn.className = `glass rounded-2xl p-4 sm:p-5 text-left flex flex-col justify-between transition-all hover:-translate-y-1 hover:border-white/30 ${
+                    isToday ? 'ring-2 ring-amber-400 bg-slate-900/90' : ''
+                }`;
+
+                btn.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${m.gradient} flex items-center justify-center text-slate-950 shadow-md">
+                                <i class="ph-fill ${m.icon} text-xl"></i>
+                            </div>
+                            ${isToday
+                                ? `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-400 text-slate-950">Hoy</span>`
+                                : `<span class="text-[11px] text-slate-400 font-medium">${m.days}</span>`
+                            }
+                        </div>
+                        <div>
+                            <h3 class="font-display font-bold text-base sm:text-xl text-white">${m.name}</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">${m.days}</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-bold text-amber-400">
+                        <span>Comenzar</span>
+                        <i class="ph-bold ph-arrow-right"></i>
+                    </div>
+                `;
+                grid.appendChild(btn);
+            });
+        }
+
+        function startMystery(mysteryKey) {
+            currentMysteryKey = mysteryKey;
+            stepsSequence = buildStepsForMystery(mysteryKey);
+            currentStepIndex = 0;
+            visualBeadIndex = 0;
+            targetBeadIndex = 0;
+
+            document.getElementById('homeScreen').classList.add('hidden');
+            document.getElementById('completionModal').classList.add('hidden');
+            document.getElementById('prayerScreen').classList.remove('hidden');
+            document.getElementById('changeMysteryBtn').classList.remove('hidden');
+            document.getElementById('changeMysteryBtn').classList.add('inline-flex');
+
+            updatePrayerView(1);
+            playBeadClickSound(540);
+        }
+
+        function showHomeScreen() {
+            document.getElementById('prayerScreen').classList.add('hidden');
+            document.getElementById('completionModal').classList.add('hidden');
+            document.getElementById('homeScreen').classList.remove('hidden');
+            document.getElementById('changeMysteryBtn').classList.add('hidden');
+            document.getElementById('changeMysteryBtn').classList.remove('inline-flex');
+        }
+
+        function nextStep() {
+            if (currentStepIndex < stepsSequence.length - 1) {
+                currentStepIndex++;
+                updatePrayerView(1);
+                playBeadClickSound(620);
+            } else {
+                // Terminó los 5 misterios y el Ángelus -> mostrar frase aleatoria de los 30 Santos Canónicos
+                playBeadClickSound(880);
+                pickRandomSaintQuote();
+                document.getElementById('completionModal').classList.remove('hidden');
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                updatePrayerView(-1);
+                playBeadClickSound(460);
+            }
+        }
+
+        function restartRosary() {
+            document.getElementById('completionModal').classList.add('hidden');
+            currentStepIndex = 0;
+            updatePrayerView(-1);
+        }
+
+        function pickRandomSaintQuote() {
+            const randomIndex = Math.floor(Math.random() * CANONICAL_SAINT_QUOTES.length);
+            const item = CANONICAL_SAINT_QUOTES[randomIndex];
+            document.getElementById('saintQuoteText').textContent = `"${item.quote}"`;
+            document.getElementById('saintAuthorName').textContent = `— ${item.saint}`;
+        }
+
+        /* =========================================================================
+           9. MÚSICA AMBIENTAL MEDITATIVA Y SONIDO DE CUENTA DE MADERA (WEB AUDIO API)
+           ========================================================================= */
+        let audioCtx = null;
+        let ambientPlaying = false;
+        let ambientOscillators = [];
+
+        function ensureAudio() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Sonido sutil y orgánico al deslizar una cuenta del rosario
+        function playBeadClickSound(freq = 600) {
+            try {
+                ensureAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.75, audioCtx.currentTime + 0.09);
+
+                gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.05, audioCtx.currentTime + 0.012);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.18);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.19);
+            } catch (e) {}
+        }
+
+        // Música de ambiente celestial (acorde cálido continuo)
+        function toggleAmbientSound() {
+            ensureAudio();
+            const label = document.getElementById('ambientLabel');
+            const btn = document.getElementById('ambientBtn');
+
+            if (!ambientPlaying) {
+                const chord = [261.63, 329.63, 392.00, 523.25]; // Do Mayor celestial
+                ambientOscillators = chord.map(freq => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+                    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.016, audioCtx.currentTime + 1.4);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    return { osc, gain };
+                });
+
+                ambientPlaying = true;
+                label.textContent = 'Música Ambiente: On';
+                btn.classList.add('border-amber-400/50', 'bg-amber-500/15');
+            } else {
+                ambientOscillators.forEach(node => {
+                    try {
+                        node.gain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.4);
+                        setTimeout(() => node.osc.stop(), 450);
+                    } catch (e) {}
+                });
+                ambientOscillators = [];
+                ambientPlaying = false;
+                label.textContent = 'Música Ambiente: Off';
+                btn.classList.remove('border-amber-400/50', 'bg-amber-500/15');
+            }
+        }
+
+        /* =========================================================================
+           10. ATAJOS DE TECLADO E INICIALIZACIÓN
+           ========================================================================= */
+        window.addEventListener('keydown', (e) => {
+            const isPraying = !document.getElementById('prayerScreen').classList.contains('hidden');
+            const isModal = !document.getElementById('completionModal').classList.contains('hidden');
+            if (!isPraying || isModal) return;
+
+            if (e.code === 'ArrowRight' || e.code === 'Space') {
+                e.preventDefault();
+                nextStep();
+            } else if (e.code === 'ArrowLeft') {
+                e.preventDefault();
+                prevStep();
+            }
+        });
+
+        window.onload = () => {
+            renderHomeMysteryCards();
+            startContinuousRosaryLoop();
+        };
+    </script>
+</body>
+</html>
