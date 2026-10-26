@@ -462,6 +462,10 @@
                         <strong class="text-sky-300">R.</strong> Y habitó entre nosotros. <em class="text-slate-400">(Ave María...)</em></p>
                         <p><strong class="text-amber-300">V.</strong> Ruega por nosotros, Santa Madre de Dios.<br>
                         <strong class="text-sky-300">R.</strong> Para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo.</p>
+                        <div class="py-1.5 px-3 rounded-xl bg-amber-400/10 border border-amber-400/20 text-xs sm:text-sm text-amber-200">
+                            <strong>(Se rezan 3 Gloria al Padre...)</strong><br>
+                            <span class="text-slate-300">«Gloria al Padre, y al Hijo, y al Espíritu Santo. Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.» <em>(x3)</em></span>
+                        </div>
                         <p class="pt-1 text-amber-100"><strong>Oremos:</strong> Infunde, Señor, tu gracia en nuestras almas, para que los que hemos conocido, por el anuncio del Ángel, la Encarnación de tu Hijo Jesucristo, lleguemos por los méritos de su Pasión y su Cruz, a la gloria de la Resurrección. Por Jesucristo Nuestro Señor. <strong>Amén.</strong></p>
                     </div>
                 `
@@ -1633,12 +1637,41 @@
                 art: 'intro'
             });
 
-            // 4. Los 5 Misterios (Padre Nuestro + 10 Ave Marías + Gloria + Fátima)
+            // 4. Los 5 Misterios (Anuncio en Grande + Padre Nuestro + 10 Ave Marías + Gloria + Fátima)
             mGroup.items.forEach((mItem, idx) => {
                 const mNum = idx + 1;
 
-                // Padre Nuestro
+                // Anuncio del Misterio en Grande antes de rezar la decena
                 physicalPos++;
+                const mysteryCaption = MYSTERY_CAPTIONS[mItem.art] || '';
+                list.push({
+                    beadKind: 'father',
+                    isAnnouncement: true,
+                    physicalSlot: physicalPos,
+                    pillText: `${mNum}° Misterio • Anuncio`,
+                    mysteryHeader: `${mGroup.name} • ${mNum}° Misterio`,
+                    prayerName: `Misterio a Meditar`,
+                    prayerHtml: `
+                        <div class="py-2 sm:py-4 flex flex-col items-center justify-center text-center space-y-3 sm:space-y-4">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 shadow-sm shadow-amber-500/10">
+                                <i class="ph-bold ph-book-open-text text-sm"></i>
+                                Meditación del Misterio
+                            </span>
+                            <h1 class="text-xl sm:text-3xl md:text-4xl font-extrabold text-white font-display tracking-tight leading-snug text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-orange-400 drop-shadow-md">
+                                ${mItem.title}
+                            </h1>
+                            ${mysteryCaption ? `<p class="text-sm sm:text-lg text-slate-200 italic max-w-xl font-medium leading-relaxed bg-white/5 border border-white/10 rounded-xl px-4 py-3 shadow-inner">"${mysteryCaption}"</p>` : ''}
+                            <div class="pt-1 sm:pt-2 flex items-center justify-center gap-2 text-xs sm:text-sm text-amber-300/90 font-medium">
+                                <i class="ph-bold ph-hand-pointing"></i>
+                                <span>Toca <strong>«Comenzar Misterio»</strong> para rezar el Padre Nuestro y las 10 Ave Marías</span>
+                            </div>
+                        </div>
+                    `,
+                    art: mItem.art,
+                    mysteryNumber: mNum
+                });
+
+                // Padre Nuestro (comparte la misma cuenta grande física)
                 list.push({
                     beadKind: 'father',
                     physicalSlot: physicalPos,
@@ -1989,6 +2022,8 @@
             const nextLabel = document.getElementById('nextBtnLabel');
             if (currentStepIndex === total - 1) {
                 nextLabel.textContent = 'Finalizar Rosario';
+            } else if (step.isAnnouncement) {
+                nextLabel.textContent = 'Comenzar Misterio';
             } else {
                 nextLabel.textContent = 'Pasar Cuenta';
             }
